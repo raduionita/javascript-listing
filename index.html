@@ -1,0 +1,64 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+<meta charset="UTF-8">
+<title></title>
+</head>
+<body>
+
+<link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" media="all" />
+<link rel="stylesheet" type="text/css" href="jquery.listing.css" media="all" />
+<script type="text/javascript" src="https://code.jquery.com/jquery-2.2.3.min.js"></script>
+<script type="text/javascript" src="jquery.listing.js"></script>
+<script type="text/javascript">
+(function($) {
+    $('#listing_table').listing({
+        url    : '/en/list/promotions',
+        method : 'GET',
+        type   : 'json',
+        perpage: 10,
+        columns: [
+            { field: 'id',        label: 'ID',     align: 'center' },
+            { field: 'status',    label: 'Status', align: 'center', hidden: true },
+            { field: 'name',      label: 'Name' },
+            { field: 'vendor',    label: 'Vendor' },
+            { field: 'platform',  label: 'Platform' },
+            { field: 'type',      label: 'Type' },
+            { field: 'startDate', label: 'StartDate', nowrap: true },
+            { field: 'endDate',   label: 'End Date',  nowrap: true },
+            { field: 'source',    label: 'Source' },
+            { field: 'createdBy', label: 'Created By' },
+            { field: 'left',      label: 'Left',  align: 'center', concat: 'd' }
+        ],
+        actions: [
+            {
+                icon   : 'fa fa-eye',
+                href   : function(row) { return '/en/view/'+ row.id },
+                target : '_blank'
+            },
+            [
+                {
+                    label  : 'Clone',
+                    onClick: function(row) { location.href = '/en/clone/check/'+ row.id; return false; }
+                }
+            ]
+        ],
+        onResponse: function(data) {
+            console.log('response');
+        },
+        onComplete: function() {
+            $(this).find('td.status :first-child').each(function(i) {
+                let $this = $(this);
+                switch($this.html()) {
+                    case 'added':    $this.parent().prev().find(':first-child').addClass('label label-info').attr('title', 'added');    return;
+                    case 'active':   $this.parent().prev().find(':first-child').addClass('label label-warning').attr('title', 'added'); return;
+                    case 'inactive': $this.parent().prev().find(':first-child').addClass('label label-danger').attr('title', 'added');  return;
+                    case 'online':   $this.parent().prev().find(':first-child').addClass('label label-success').attr('title', 'added'); return;
+                }
+            });
+        }
+    });
+})(jQuery);
+</script>
+</body>
+</html>
