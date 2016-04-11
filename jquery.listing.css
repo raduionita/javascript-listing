@@ -1,6 +1,11 @@
 .nowrap { white-space: nowrap!important; }
-
+.relative { position: relative!important; }
+.absolute { position: absolute!important; }
 .inline { display: inline-block!important; }
+.nooverflow { overflow: visible!important; }
+.novpadding { padding-left: 0px!important; padding-right: 0px!important; }
+th:hover { cursor: default; }
+.pointer { cursor: pointer!important; }
 
 .tleft   { text-align: left!important; }
 .tcenter { text-align: center!important; }
@@ -14,4 +19,3 @@
 
 .dropdown-menu { min-width: 0px; }
 .btn-group-vertical>.btn, .btn-group>.btn { float: none; }
-

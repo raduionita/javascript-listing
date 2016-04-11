@@ -31,9 +31,9 @@
         ],
         perpage: 10,
         columns: [
-            { field: 'id',        label: 'ID',     align: 'center' },
+            { field: 'id',        label: 'ID',     align: 'center', sortable: true, type: 'int', nowrap: true },
             { field: 'status',    label: 'Status', align: 'center', hidden: true },
-            { field: 'name',      label: 'Name' },
+            { field: 'name',      label: 'Name',                    sortable: true },
             { field: 'vendor',    label: 'Vendor' },
             { field: 'platform',  label: 'Platform' },
             { field: 'type',      label: 'Type' },
@@ -51,8 +51,14 @@
             },
             [
                 {
+                    label  : 'Edit',
+                    icon   : 'fa-edit',
+                    onClick: function(row) { location.href = '/en/edit/'+ row.id; return false; }
+                },
+                {
                     label  : 'Clone',
-                    onClick: function(row) { location.href = '/en/clone/check/'+ (typeof row.id !== 'undefined' ? row.id : row[0]); return false; }
+                    icon   : 'fa-copy',
+                    onClick: function(row) { location.href = '/en/clone/check/'+ row.id; return false; }
                 }
             ]
         ],
