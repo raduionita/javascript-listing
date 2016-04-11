@@ -19,6 +19,7 @@
                 type    : 'string', // number, string, date, time, datetime, bool
                 field   : null,
                 label   : '',
+                icon    : null,
                 align   : 'left',
                 vertical: 'middle',
                 nowrap  : false,
@@ -45,10 +46,11 @@
                 height : null,
                 page   : 0,
                 perpage: 10,
+                total  : null, // request total number of rows
                 columns: [],
                 actions: [],
-                pager  : null, // @TODO: if #pager use that elem to generate paginator
-                loader : null, // @TODO: loading pinner
+                pager  : null, // TODO: if #pager use that elem to generate paginator
+                loader : null, // TODO: loading pinner
                 onResponse: noop,
                 onComplete: noop,
                 onError   : noop,
@@ -76,22 +78,22 @@
             let row, col, val, cls;
             let r = 0;
             for (let j = 0, l0 = data.length; j < l0; ++j) {
-                let promo = data[j];
+                let item = data[j];
                 row = '<tr class="row_' + j + '">';
                 let c = 0;
                 // fields
                 if (settings.columns.length) { // w/ columns
                     for (let i = 0, l1 = settings.columns.length; i < l1; ++i) {
                         col  = settings.columns[i];
-                        val  = typeof promo[col.field] !== 'undefined' ? promo[col.field] : promo[i];
+                        val  = typeof item[col.field] !== 'undefined' ? item[col.field] : item[i];
                         cls  = ('col_'+ c +' row_'+ r) + (' '+ col.field) + (' t'+ col.align) + (' v'+ col.vertical) + (col.nowrap?' nowrap':'') + (col.hidden?' hidden':'');
                         row += '<td class="'+ cls +'"><span class="'+ col.field +'">'+ (col.prepend?col.prepend:'') + val + (col.append?col.append:'') +'</span></td>';
                         ++c;
                     }
                 } else { // w/o columns
-                    for (let field in promo) {
-                        if (promo.hasOwnProperty(field)) {
-                            val  = promo[field];
+                    for (let field in item) {
+                        if (item.hasOwnProperty(field)) {
+                            val  = item[field];
                             cls  = ('col_'+ c +' row_'+ r) + (' tleft') + (' vcenter');
                             row += '<td class="'+ cls +' '+ field +'"><span class="'+ field +'">'+ val +'</span></td>';
                         }
@@ -101,61 +103,59 @@
                 // actions
                 if (settings.actions.length) {
                     row += '<td class="col_'+ c +' row_'+ r +' actions tcenter nowrap">';
-                    row += '<div class="nowrap relative">';
+                    row += '<div class="nowrap relative btn-group">';
                     for (let i = 0, l = settings.actions.length; i < l; ++i) {
                         if (isArray(settings.actions[i])) {
-                            row += '<div class="btn btn-sm btn-default relative">';
-                            row += '<i class="fa fa-ellipsis-h"></i>';
-                            row += '<div class="hidden more relative">';
+                            row += '<a href="#" class="btn btn-sm btn-default relative dropdown-toggle" data-toggle="dropdown" title="More actions">';
+                            row +=     '<i class="fa fa-ellipsis-h"></i>';
+                            row += '</a>';
+                            row += '<ul class="more relative dropdown-menu dropdown-menu-right">';
                             for(let k = 0, m = settings.actions[i].length; k < m; ++k) {
                                 let action = settings.actions[i][k];
                                 let id = 'action_'+ i +'_'+ k +'_row_'+ r;
+                                row += '<li>';
                                 if (action.href) {
-                                    let href = typeof action.href === 'function' ? action.href(promo) : action.href;
+                                    let href = typeof action.href === 'function' ? action.href(item) : action.href;
                                     /* @TODO: if no function or string don't do shit */
                                     /* @TODO: add iframe support */
-                                    row += '<a href="'+ href +'" target="'+ action.target +'" class="btn btn-sm btn-default" id="'+ id +'">';
+                                    row += '<a href="'+ href +'" target="'+ action.target +'" class="tright" id="'+ id +'">';
                                 } else {
-                                    row += '<div class="btn btn-sm btn-default" id="'+ id +'">';
-                                    $table.on('click', '#'+ id, function() { return action.onClick(promo); });
+                                    row += '<a href="#" class="tright" id="'+ id +'">';
+                                    $table.on('click', '#'+ id, function() { return action.onClick(item); });
                                 }
-                                if (action.icon/* @TODO:  && is string */) {
-                                    row += '<i class="'+ action.icon +'"></i>';
-                                }
+                                // label
                                 if (action.label) {
-                                    row += '<span class="label">'+ action.label +'</span>';
+                                    row += '<span class="">'+ action.label +'</span>';
                                 }
-                                if (action.href) {
-                                    row += '</a>';
-                                } else {
-                                    row += '</div>';
+                                // icon
+                                if (action.icon/* @TODO:  && is string */) {
+                                    row += '<i class="fa '+ action.icon +'"></i>';
                                 }
+                                // end a/li
+                                row += '</a>';
+                                row += '</li>';
                             }
-                            row += '</div>';
                             row += '</div>';
                         } else {
                             let action = settings.actions[i];
                             let id = 'action_'+ i +'_row_'+ r;
                             if (action.href) {
-                                let href = typeof action.href === 'function' ? action.href(promo) : action.href;
+                                let href = typeof action.href === 'function' ? action.href(item) : action.href;
                                 /* @TODO: if no function or string don't do shit */
                                 /* @TODO: add iframe support */
                                 row += '<a href="'+ href +'" target="'+ action.target +'" class="btn btn-sm btn-default" id="'+ id +'">';
                             } else {
-                                row += '<div class="btn btn-sm btn-default" id="'+ id +'">';
-                                $table.on('click', '#'+ id, function() { return action.onClick(promo); });
+                                row += '<a href="#" class="btn btn-sm btn-default" id="'+ id +'">';
+                                $table.on('click', '#'+ id, function() { return action.onClick(item); });
                             }
                             if (action.icon/* @TODO: && is string */) {
-                                row += '<i class="'+ action.icon +'"></i>';
+                                row += '<i class="fa '+ action.icon +'"></i>';
                             }
                             if (action.label) {
-                                row += '<span class="label">'+ action.label +'</span>';
+                                row += '<span class="">'+ action.label +'</span>';
                             }
-                            if (action.href) {
-                                row += '</a>';
-                            } else {
-                                row += '</div>';
-                            }
+                            
+                            row += '</a>';
                         }
                     }
                     row += '</div>';
@@ -169,6 +169,7 @@
             $table.append($tbody);
             
             settings.onComplete.call(this);
+            this.settings.completed = true;
         };
         // build head
         let buildHead = function() {
@@ -189,13 +190,44 @@
         };
         // buildFoot
         let buildFoot = function() {
-            let $table = $(this);
+            let self = this;
+            let $table = $(self);
+            let stop = setInterval(function() {
+                if (self.settings.completed) {
+                    clearInterval(stop);
+                    // build pager
+                    let $tfoot = $('<tfoot>');
+                    
+                    
+                    if (isString(self.settings.pager)) {
+                        
+                        
+                    } else {
+                        let pager = $.extend({}, defaults.pager, self.settings.pager);
+                        console.log(pager);
+                        let row;
+                        
+                        row  = '<tr><td class="tcenter" colspan="'+ (settings.columns.length + 1) +'">';
+                        row +=     '<div class="pager inline">';
+                        row +=         '<a class="btn btn-sm btn-default"><i class="fa fa-caret-left fa-lg "></i></a>'; 
+                        row +=         '&nbsp;&nbsp;<span class="box10px inline">'+ (self.settings.page + 1) +'</span>&nbsp;&nbsp;';
+                        row +=         '<a class="btn btn-sm btn-default"><i class="fa fa-caret-right fa-lg"></i></a>';
+                        row +=     '</div>';
+                        row += '</td></tr>';
+                        
+                        $tfoot.append(row);
+                        $table.append($tfoot);
+                    }
+                    
+                }
+            }, 500);
         };
         // table + data request
         return this.each(function(i) {
             // clear data
             var self = this;
             self.settings = settings;
+            self.settings.completed = false;
             $(self).width(settings.width).html('');
             // populate thead
             if (settings.columns.length) {
@@ -224,11 +256,7 @@
             }
             // populate tfoot | pagination
             if (settings.pager != false) {
-                // buildFoot()
-                // if pager == null || {} 
-                    // use tfoot 
-                // else if string use 
-                    // #pager
+                buildFoot.call(self);
             }
         });
     };

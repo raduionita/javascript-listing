@@ -1,7 +1,17 @@
 .nowrap { white-space: nowrap!important; }
 
+.inline { display: inline-block!important; }
+
 .tleft   { text-align: left!important; }
 .tcenter { text-align: center!important; }
 .tright  { text-align: right!important; }
 
 .vmiddle { vertical-align: middle!important; }
+
+.box10px { width: 10px; height: 10px; }
+
+.pager { margin: 0px; }
+
+.dropdown-menu { min-width: 0px; }
+.btn-group-vertical>.btn, .btn-group>.btn { float: none; }
+
