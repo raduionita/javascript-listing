@@ -53,6 +53,7 @@
                 {
                     label  : 'Edit',
                     icon   : 'fa-edit',
+                    hidden : function (row) { return row.status === 'synched'; },
                     onClick: function(row) { location.href = '/en/edit/'+ row.id; return false; }
                 },
                 {
