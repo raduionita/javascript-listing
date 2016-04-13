@@ -1,4 +1,4 @@
-(function($) {
+(function($) { 
     if ($ === null) {
         console.error('No jQuery no listing!');
         return;
