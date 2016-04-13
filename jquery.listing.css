@@ -6,6 +6,8 @@
 .novpadding { padding-left: 0px!important; padding-right: 0px!important; }
 th:hover { cursor: default; }
 .pointer { cursor: pointer!important; }
+.disabled { cursor: not-allowed!important; }
+.disabled > * { cursor: not-allowed!important; }
 
 .tleft   { text-align: left!important; }
 .tcenter { text-align: center!important; }

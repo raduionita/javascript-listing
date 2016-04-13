@@ -11,10 +11,20 @@
         return Object.prototype.toString.call(variable) === '[object String]';
     };
     
+    if (typeof $.fn.delay === 'undefined') {
+        $.fn.delay = function (msecs, callback) {
+            msecs    = msecs || 1;
+            callback = callback || function () { };
+            return this.each(function(i) {
+                setTimeout(callback, msecs);
+            });
+        };
+    }
+    
     if (typeof $.fn.serializeObject === 'undefined') {
         $.fn.serializeObject = function () {
-            var o = {};
-            var a = this.serializeArray();
+            let o = {};
+            let a = this.serializeArray();
             $.each(a, function() {
                 if (o[this.name]) {
                     if (!o[this.name].push) {
@@ -75,6 +85,7 @@
                     actions: [],
                     pager: null, // TODO: if #pager use that elem to generate paginator
                     loader: null, // TODO: loading pinner
+                    complete: false,
                     onResponse: noop,
                     onComplete: noop,
                     onError: noop,
@@ -208,8 +219,7 @@
                     ++r;
                 }
 
-                settings.onComplete.call(this);
-                this.settings.completed = true;
+                $table.trigger('listing:complete');
             };
             // build head
             let buildHead = function () {
@@ -241,7 +251,7 @@
                 // sort: bind click event 
                 $thead.on('click', '.sortable', function (evt) {
                     evt.preventDefault();
-                    if (self.settings.completed) {
+                    if (self.settings.complete) {
                         var $this = $(this);
                         let $icon = $this.find('.sort-icon');
                         let dir = $icon.hasClass('fa-sort') || $icon.hasClass('fa-sort-asc') ? 'desc' : 'asc';
@@ -281,101 +291,101 @@
             let buildFoot = function () {
                 let self = this;
                 let $table = $(self);
-                let stop = setInterval(function () {
-                    if (self.settings.completed) {
-                        clearInterval(stop);
-                        // build pager
-                        let $tfoot = $table.find('tfoot');
-                        if (!$tfoot.length) {
-                            $tfoot = $('<tfoot>');
-                            $table.append($tfoot);
-                        }
+                // pager
+                let $pager = $('<div id="pager">');
+                let pager = $.extend({}, defaults.pager, self.settings.pager);
+                let row;
+                row =  '<div id="reload" class="pull-left btn btn-sm btn-default"><i class="fa fa-refresh"></i></div>';
+                row += '<div class="pager inline">';
+                row +=     '<a id="pageleft" class="btn btn-sm btn-default" title="Previous page"><i class="fa fa-caret-left fa-lg "></i></a>';
+                row +=     '&nbsp;&nbsp;<span id="pages" class="box10px inline">' + (self.settings.page + 1) + '</span>&nbsp;&nbsp;';
+                row +=     '<a id="pageright" class="btn btn-sm btn-default" title="Next page"><i class="fa fa-caret-right fa-lg"></i></a>';
+                row += '</div>';
+                row += '<div class="btn-group relative pull-right dropup" title="Items per page">';
+                row +=     '<a id="perpage" href="#" class="btn btn-sm btn-default dropdown-toggle" data-toggle="dropdown">' + self.settings.perpage + '</a>';
+                row +=     '<ul id="perpageopt" class="dropdown-menu" style="width:100%">';
+                for (let i = 0; i < pager.pageopt.length; ++i) {
+                    row +=      '<li><a class="novpadding tcenter" href="#">' + pager.pageopt[i] + '</a></li>';
+                }
+                row +=     '</ul>';
+                row += '</div>';
+                $pager.append(row);
+                // other or table
+                if (isString(self.settings.pager)) {
+                    // TODO: ... place pager in other places
+                    $(self.settings.pager).append($pager);
+                } else {
+                    let $tfoot = $table.find('tfoot');
+                    if (!$tfoot.length) {
+                        $tfoot = $('<tfoot>');
+                        $table.append($tfoot);
+                    }
+                    let $tr = $('<tr>');
+                    let $td = $('<td class="tcenter" colspan="' + (settings.columns.length + 1) + '">');
+                    $td.append($pager);
+                    $tr.append($td);
+                    $tfoot.append($tr);
+                    $table.append($tfoot);
+                }
 
-                        if (isString(self.settings.pager)) {
-                            // TODO: ... place pager in other places
+                $pager.on('click', '#perpageopt > li a', function (evt) {
+                    if (self.settings.complete === false) {
+                        return;
+                    }
+                    evt.preventDefault();
+                    let perpage = parseInt($(this).html());
+                    self.settings.perpage = perpage || 10;
+                    $('#perpage').html(self.settings.perpage);
+                    $table.trigger('listing:refresh');
+                }).on('click', '#reload', function (evt) {
+                    if (self.settings.complete === false) {
+                        return;
+                    }
+                    $('#pages').html(1);
+                    $table.trigger('listing:reload');
+                }).on('click', '#pageleft', function (evt) {
+                    if (self.settings.complete === false) {
+                        return;
+                    }
+                    self.settings.page = self.settings.page === 0 ? 0 : self.settings.page - 1;
+                    $('#pages').html(self.settings.page + 1);
+                    $table.trigger('listing:refresh');
+                }).on('click', '#pageright', function (evt) {
+                    if (self.settings.complete === false) {
+                        return;
+                    }
+                    if (self.settings.data.length < ((self.settings.page + 1) * self.settings.perpage)) {
+                        // return; // do nothing
+                    } else {
+                        self.settings.page += 1;
+                        $('#pages').html(self.settings.page + 1);
+                        if (self.settings.data.length > self.settings.page * self.settings.perpage) {
+                            $table.trigger('listing:refresh');
                         } else {
-                            let pager = $.extend({}, defaults.pager, self.settings.pager);
-                            let row;
-                            row  = '<tr>';
-                            row += '<td class="tcenter" colspan="' + (settings.columns.length + 1) + '">';
-                            row +=     '<div id="reload" class="pull-left btn btn-sm btn-default"><i class="fa fa-refresh"></i></div>';
-                            row +=     '<div class="pager inline">';
-                            row +=         '<a id="pageleft" class="btn btn-sm btn-default" title="Previous page"><i class="fa fa-caret-left fa-lg "></i></a>';
-                            row +=         '&nbsp;&nbsp;<span id="pages" class="box10px inline">' + (self.settings.page + 1) + '</span>&nbsp;&nbsp;';
-                            row +=         '<a id="pageright" class="btn btn-sm btn-default" title="Next page"><i class="fa fa-caret-right fa-lg"></i></a>';
-                            row +=     '</div>';
-                            row +=     '<div class="btn-group relative pull-right dropup" title="Items per page">';
-                            row +=         '<a id="perpage" href="#" class="btn btn-sm btn-default dropdown-toggle" data-toggle="dropdown">' + self.settings.perpage + '</a>';
-                            row +=         '<ul id="perpageopt" class="dropdown-menu" style="width:100%">';
-                            for (let i = 0; i < pager.pageopt.length; ++i) {
-                                row +=         '<li><a class="novpadding tcenter" href="#">' + pager.pageopt[i] + '</a></li>';
-                            }
-                            row +=         '</ul>';
-                            row +=     '</div>';
-                            row += '</td>';
-                            row += '</tr>';
-
-                            $table.on('click', '#perpageopt > li a', function (evt) {
-                                if (self.settings.completed === false) {
-                                    return;
-                                }
-                                evt.preventDefault();
-                                let perpage = parseInt($(this).html());
-                                self.settings.perpage = perpage || 10;
-                                $('#perpage').html(self.settings.perpage);
-                                $table.trigger('listing:refresh');
-                            }).on('click', '#reload', function (evt) {
-                                if (self.settings.completed === false) {
-                                    return;
-                                }
-                                $('#pages').html(1);
-                                $table.trigger('listing:reload');
-                            }).on('click', '#pageleft', function (evt) {
-                                if (self.settings.completed === false) {
-                                    return;
-                                }
-                                self.settings.page = self.settings.page === 0 ? 0 : self.settings.page - 1;
-                                $('#pages').html(self.settings.page + 1);
-                                $table.trigger('listing:refresh');
-                            }).on('click', '#pageright', function (evt) {
-                                if (self.settings.completed === false) {
-                                    return;
-                                }
-                                if (self.settings.data.length < ((self.settings.page + 1) * self.settings.perpage)) { // 7 < 10
-                                    // return; // do nothing
-                                } else {
-                                    self.settings.page += 1;
-                                    $('#pages').html(self.settings.page + 1);
-                                    if (self.settings.data.length > self.settings.page * self.settings.perpage) {
-                                        $table.trigger('listing:refresh');
-                                    } else {
-                                        $table.trigger('listing:update');
-                                    }
-                                }
-                            });
-                            $tfoot.append(row);
+                            $table.trigger('listing:update');
                         }
                     }
-                }, 500);
+                });
             };
             // table + data request
             return this.each(function (i) {
                 // clear data
-                var self = this;
+                var self   = this;
                 var $table = $(self);
                 self.settings = settings;
-                self.settings.completed = false;
                 $table.width(self.settings.width).html('');
                 // reload
                 $table.on('listing:reload', function (evt) {
                     self.settings.page = 0;
                     self.settings.data = [];
-                    self.settings.completed = false;
+                    self.settings.complete = false;
                     $table.find('.sort-icon').removeClass('fa-sort-asc fa-sort-desc').addClass('fa-sort');
                     $table.trigger('listing:update');
                 });
                 // refresh
                 $table.on('listing:refresh', function (evt) {
+                    $table.addClass('disabled');
+                    $table.find('.fa-refresh').addClass('fa-spin');
                     buildBody.call(self);
                 });
                 // reset
@@ -383,10 +393,15 @@
                     self.settings.page = 0;
                     self.settings.perpage = settings.perpage; // 10
                     self.settings.data = [];
-                    self.settings.completed = false;
+                    self.settings.complete = false;
                 });
                 // update
                 $table.on('listing:update', function (evt) {
+                    // clear stuff
+                    $table.addClass('disabled');
+                    $table.find('tbody').html('');
+                    $table.find('.fa-refresh').addClass('fa-spin');
+                    // request
                     if (self.settings.type != 'local' && isString(self.settings.url)) {
                         $.ajax({
                             url: self.settings.url,
@@ -410,6 +425,13 @@
                         }
                         buildBody.call(self);
                     }
+                });
+                // complete
+                $table.on('listing:complete', function(evt) {
+                    self.settings.onComplete.call(this);
+                    self.settings.complete = true;
+                    $table.find('.fa-refresh').removeClass('fa-spin');
+                    $table.removeClass('disabled');
                 });
                 // populate thead
                 if (self.settings.columns.length) {
