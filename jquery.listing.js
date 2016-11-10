@@ -1,6 +1,7 @@
+;"use string";
 (function($) { 
     if ($ === null) {
-        console.error('No jQuery no listing!');
+        console.error('No jQuery, no listing!');
         return;
     }
 
